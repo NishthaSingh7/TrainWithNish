@@ -1,0 +1,190 @@
+/* ---------------- original layout rules ---------------- */
+.muscle-map-section {
+  padding: 40px 20px;
+  text-align: center;
+  margin-top: 40px;
+  /* background-color: #f9f9f9; */
+  background-color: black;
+}
+
+.toggle-view-buttons{
+  margin-bottom: 30px;
+}
+.active{
+  margin-right: 20px;
+}
+
+.muscle-map-title {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  color: white;
+}
+
+.muscle-map-subtitle {
+  font-size: 1.2rem;
+  color: #666;
+  margin-bottom: 40px;
+}
+
+/* Main container: keep images centered and allow side items to sit beside */
+.muscle-map-container {
+  display: flex;
+  justify-content: center;      /* centers mid column */
+  align-items: flex-start;      /* align labels with top of images */
+  gap: 40px;
+  flex-wrap: wrap;
+  position: relative;           /* harmless; kept for compatibility */
+}
+
+/* body cards (kept exactly as you had them) */
+.body-card {
+  height: 500px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 10px;
+  /* background-color: white; */
+}
+
+.body-image {
+  max-height: 420px;
+  object-fit: contain;
+}
+
+/* slight image adjustments preserved */
+.body-image.female {
+  transform: scale(0.96);         /* Zoom out slightly */
+  margin-top: 6px;                /* Adjust top alignment */
+}
+.body-image.male {
+  transform: scale(1.09);         /* Zoom out slightly */
+  margin-top: 20px;               /* Adjust top alignment */
+}
+
+/* hover effects preserved */
+.body-image.female:hover {
+  transform: scale(1.05);
+  cursor: pointer;
+}
+.body-image.male:hover {
+  transform: scale(1.2);
+  cursor: pointer;
+}
+.body-card.m p{
+  position: relative;
+  bottom:18px;
+}
+
+/* ---------------- updated label + debug rules ---------------- */
+/* labels are regular flex items now (visible, not off-screen) */
+.selected-label.left,
+.selected-label.right {
+  position: static;
+  width: 240px;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.75);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* ensure visual left / center / right ordering:
+   DOM already has left label, male card, female card, right label.
+   We set explicit order for clarity. */
+.selected-label.left { order: 0; text-align: left; margin-right: 6px; }
+.body-card.m { order: 1; }
+.body-card.f { order: 1; }
+.selected-label.right { order: 2; text-align: right; margin-left: 6px; }
+
+/* wrapper we listen on for clicks — doesn't change layout */
+.image-click-wrapper { position: relative; }
+
+/* debug click dot that appears inside viewport at click location */
+.debug-click-dot {
+  position: fixed;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 50, 50, 0.95);
+  box-shadow: 0 0 6px rgba(255,50,50,0.8);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Responsive: on narrow screens labels become stacked and centered */
+@media (max-width: 1000px) {
+  .muscle-map-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .selected-label.left, .selected-label.right {
+    width: 100%;
+    text-align: center;
+    order: 0;
+    margin: 6px 0;
+  }
+  .body-card.m, .body-card.f { order: 1; }
+}
+
+/* hotspot */
+
+/* Dev hotspot marker visuals (append at bottom) */
+.hotspot-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 9995;
+  cursor: grab;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto; /* must capture pointer */
+}
+.hotspot-marker-dot {
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 160, 0, 0.98);
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+/* while dragging show closed hand */
+.hotspot-marker:active { cursor: grabbing; transform: translate(-50%, -50%) scale(1.05); }
+
+/* keep debug click dot */
+.debug-click-dot {
+  position: fixed;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 50, 50, 0.95);
+  box-shadow: 0 0 6px rgba(255,50,50,0.8);
+  z-index: 9999;
+  pointer-events: none;
+}
+
+
+.highlight-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9994;
+}
+
+.highlight-polygon {
+  fill: rgba(255, 200, 0, 0.35); /* yellow translucent */
+  stroke: rgba(255, 180, 0, 0.9);
+  stroke-width: 2;
+}
