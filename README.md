@@ -1,6 +1,21 @@
-# TrainWithNish
+# Train with Nish
 
-Fitness-focused React app built with Vite.
+Personalized fitness coaching platform — track workouts, protein, PRs, cravings, and explore an interactive muscle map.
+
+**Portfolio:** [nishthasinghportfolio.netlify.app](https://nishthasinghportfolio.netlify.app/)
+
+## Features
+
+| Module | What it does |
+| --- | --- |
+| **Muscle Map** | Interactive front/back body map — tap muscles for training tips and exercise guidance |
+| **Track PRs** | Log personal records with charts and progress over time |
+| **Track Protein** | Hybrid food lookup (local map + USDA API fallback) with smart caching |
+| **Cravings Controller** | Identify craving types and get actionable alternatives |
+
+## Stack
+
+React · Vite · React Router · Recharts · LocalStorage
 
 ## Run locally
 
@@ -9,32 +24,37 @@ npm install
 npm run dev
 ```
 
-App runs on `http://localhost:5173/`.
+App runs at `http://localhost:5173/`.
 
-## Track Protein lookup (local + API fallback)
+### Optional — USDA protein lookup
 
-The `Track Protein` route uses hybrid lookup:
+For unknown foods, the app falls back to [USDA FoodData Central](https://fdc.nal.usda.gov/) (free API key):
 
-- Local map lookup first (fast and works offline for known foods).
-- API fallback for unknown food/dish names.
+1. Sign up: [fdc.nal.usda.gov/api-key-signup.html](https://fdc.nal.usda.gov/api-key-signup.html)
+2. Copy `.env.example` → `.env`
+3. Add `VITE_USDA_API_KEY=your_key`
+4. Restart the dev server
 
-### Optional API setup (USDA FoodData Central — free)
+Works offline for common foods even without a key.
 
-For unknown foods, the app falls back to [USDA FoodData Central](https://fdc.nal.usda.gov/).
+## Project structure
 
-1. Get a free API key: [https://fdc.nal.usda.gov/api-key-signup.html](https://fdc.nal.usda.gov/api-key-signup.html)
-2. Copy `.env.example` to `.env` in the project root
-3. Add your key:
-
-```bash
-VITE_USDA_API_KEY=your_usda_api_key_here
+```
+src/
+├── pages/          # Hero, MuscleMap, TrackPRs, TrackProtein, CravingsController
+├── data/           # Muscle regions, protein map, craving types
+├── services/       # Protein lookup, PR storage, USDA cache
+└── utils/          # Meal parsing, body image helpers
 ```
 
-4. Restart the dev server: `npm run dev`
+## Scripts
 
-If the key is missing, the app still works with local food mapping only.
+```bash
+npm run dev       # Development server
+npm run build     # Production build
+npm run preview   # Preview production build
+```
 
-### USDA caching
+---
 
-USDA results are cached by food name for 7 days (browser `localStorage` + in-memory).
-Repeat lookups like `100g salmon` and `200g salmon` reuse the same cached USDA data and do not call the API again.
+Built by **Nishtha Singh**

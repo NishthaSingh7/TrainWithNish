@@ -30,3 +30,6 @@ PROJECT_WORKFLOW.md
 # Cursor / private plans (never commit)
 .cursor/
 *.plan.md
+
+# Generated muscle calibration output
+src/data/muscleRegions.saved.json
