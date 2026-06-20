@@ -5,6 +5,8 @@ import Hero from './pages/Hero';
 import FeatureCard from './pages/FeatureCard';
 import TrackProtein from './pages/TrackProtein';
 import MuscleMap from './pages/MuscleMap';
+import TrackPRs from './pages/TrackPRs';
+import CravingsController from './pages/CravingsController';
 
 function App() {
 
@@ -15,6 +17,8 @@ function App() {
           <Route path="/" element={<><Hero /><FeatureCard /></>} /> 
           <Route path="/trackprotein" element={<TrackProtein />} />
           <Route path="/musclemap" element={<MuscleMap />} />
+          <Route path="/trackprs" element={<TrackPRs />} />
+          <Route path="/cravings" element={<CravingsController />} />
           {/* <Route path="/exercises" element={<Exercises />} /> */}
           {/* <Route path="/planner" element={<Planner />} /> */}
         </Routes>

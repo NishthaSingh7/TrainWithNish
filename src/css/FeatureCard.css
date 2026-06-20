@@ -31,6 +31,17 @@
   box-shadow: 0 6px 16px rgba(0,0,0,0.15);
 }
 
+.feature-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.feature-link:hover h3,
+.feature-link:hover p {
+  color: #1e1e1e;
+}
+
 .feature-icon {
   font-size: 2.5em;
   margin-bottom: 12px;
