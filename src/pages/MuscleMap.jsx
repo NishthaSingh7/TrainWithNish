@@ -1,503 +1,455 @@
-// MuscleMap.jsx (DEV: includes drag-to-position hotspot editor + polygon highlight)
-import React, { useMemo, useRef, useState, useEffect } from "react";
-import "../css/MuscleMap.css";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import '../css/MuscleMap.css';
+import {
+  BODY_FIGURE_NATURAL,
+  BODY_FIGURE_VIEW,
+  MUSCLE_MAP_CALIBRATION_ENABLED,
+} from '../data/bodyFigureConfig';
+import { getObjectFitContainRect, getPercentPointInHitLayer } from '../utils/bodyImageRect';
+import {
+  calibrationTargetKey,
+  computeCentroid,
+  findMuscleAtPoint,
+  getCalibrationTargets,
+  getMuscleSides,
+  getSidePolygon,
+  loadCalibratedRegions,
+  moveMuscleSideCentroid,
+  parseCalibrationTarget,
+  resetCalibratedRegions,
+  saveCalibratedRegions,
+  sideDisplayLabel,
+} from '../utils/muscleRegionUtils';
+
+function CalibrateMarker({ targetKey, label, center, isSelected, isLocked, hitLayerRef, onMoveTarget }) {
+  const dragRef = useRef(null);
+
+  const endMarkerDrag = () => {
+    document.removeEventListener('mousemove', onMarkerDrag);
+    document.removeEventListener('mouseup', endMarkerDrag);
+    document.removeEventListener('touchmove', onMarkerDrag);
+    document.removeEventListener('touchend', endMarkerDrag);
+    dragRef.current = null;
+  };
+
+  const onMarkerDrag = (event) => {
+    if (!dragRef.current || !hitLayerRef.current) return;
+    event.preventDefault();
+    const point = getPercentPointInHitLayer(event, hitLayerRef.current);
+    if (!point) return;
+    onMoveTarget(dragRef.current, point);
+  };
+
+  const startMarkerDrag = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragRef.current = targetKey;
+    document.addEventListener('mousemove', onMarkerDrag);
+    document.addEventListener('mouseup', endMarkerDrag);
+    document.addEventListener('touchmove', onMarkerDrag, { passive: false });
+    document.addEventListener('touchend', endMarkerDrag);
+  };
+
+  return (
+    <button
+      type="button"
+      className={`calibrate-marker ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}
+      style={{ left: `${center.x}%`, top: `${center.y}%` }}
+      title={label}
+      onMouseDown={startMarkerDrag}
+      onTouchStart={startMarkerDrag}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function BodyFigure({
+  title,
+  imageSrc,
+  view,
+  regions,
+  activeTargetKey,
+  calibrateMode,
+  selectedCalibrateTarget,
+  lockedTargetKeys,
+  onMuscleHover,
+  onMuscleSelect,
+  onMoveTarget,
+}) {
+  const viewportRef = useRef(null);
+  const imageRef = useRef(null);
+  const hitLayerRef = useRef(null);
+  const [hitLayerStyle, setHitLayerStyle] = useState(null);
+  const viewRegions = regions[view];
+
+  const syncHitLayer = useCallback(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const rect = getObjectFitContainRect(
+      viewport.clientWidth,
+      viewport.clientHeight,
+      BODY_FIGURE_NATURAL.width,
+      BODY_FIGURE_NATURAL.height
+    );
+
+    if (rect) {
+      setHitLayerStyle({
+        left: `${rect.x}px`,
+        top: `${rect.y}px`,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`,
+      });
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    syncHitLayer();
+    const viewport = viewportRef.current;
+    if (!viewport) return undefined;
+
+    const observer = new ResizeObserver(syncHitLayer);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [syncHitLayer, imageSrc]);
+
+  const resolveMuscleFromEvent = (event) => {
+    const point = getPercentPointInHitLayer(event, hitLayerRef.current);
+    if (!point) return null;
+    return findMuscleAtPoint(point, view, regions);
+  };
+
+  const handlePointerMove = (event) => {
+    if (calibrateMode) return;
+    const found = resolveMuscleFromEvent(event);
+    onMuscleHover(found?.id ?? null, found);
+  };
+
+  const handlePointerLeave = () => {
+    if (calibrateMode) return;
+    onMuscleHover(null, null);
+  };
+
+  const handleClick = (event) => {
+    if (calibrateMode) return;
+    const found = resolveMuscleFromEvent(event);
+    onMuscleSelect(found?.id ?? null, found);
+  };
+
+  const calibrationMarkers = useMemo(() => {
+    if (!calibrateMode) return [];
+    return Object.entries(viewRegions).flatMap(([muscleId, muscle]) =>
+      getMuscleSides(muscle).map(({ sideKey }) => {
+        const poly = getSidePolygon(muscle, sideKey);
+        return {
+          targetKey: calibrationTargetKey(muscleId, sideKey),
+          muscleId,
+          sideKey,
+          label: sideDisplayLabel(muscle, sideKey),
+          center: computeCentroid(poly),
+        };
+      })
+    );
+  }, [calibrateMode, viewRegions]);
+
+  return (
+    <article className={`body-card ${calibrateMode ? 'calibrate-target' : ''}`}>
+      <div
+        className="body-figure-viewport"
+        ref={viewportRef}
+        style={{
+          width: BODY_FIGURE_VIEW.width,
+          height: BODY_FIGURE_VIEW.height,
+        }}
+        role="img"
+        aria-label={`${title} muscle map, ${view} view`}
+      >
+        <img
+          ref={imageRef}
+          src={imageSrc}
+          alt=""
+          className="body-figure-image"
+          onLoad={syncHitLayer}
+        />
+
+        {hitLayerStyle ? (
+          <div
+            ref={hitLayerRef}
+            className="body-figure-hit-layer"
+            style={hitLayerStyle}
+            onMouseMove={handlePointerMove}
+            onMouseLeave={handlePointerLeave}
+            onClick={handleClick}
+          >
+            <svg className="body-figure-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+              {Object.entries(viewRegions).flatMap(([muscleId, muscle]) =>
+                getMuscleSides(muscle).map(({ sideKey, polygon }) => {
+                  const targetKey = calibrationTargetKey(muscleId, sideKey);
+                  const isActive =
+                    activeTargetKey === targetKey || selectedCalibrateTarget === targetKey;
+                  return (
+                    <polygon
+                      key={targetKey}
+                      points={polygon.map(([x, y]) => `${x},${y}`).join(' ')}
+                      className={`muscle-zone ${isActive ? 'is-active' : ''} ${
+                        lockedTargetKeys.has(targetKey) ? 'is-locked' : ''
+                      }`}
+                    />
+                  );
+                })
+              )}
+            </svg>
+
+            {calibrateMode &&
+              calibrationMarkers.map((marker) => (
+                <CalibrateMarker
+                  key={`${title}-${marker.targetKey}`}
+                  targetKey={marker.targetKey}
+                  label={marker.label}
+                  center={marker.center}
+                  isSelected={selectedCalibrateTarget === marker.targetKey}
+                  isLocked={lockedTargetKeys.has(marker.targetKey)}
+                  hitLayerRef={hitLayerRef}
+                  onMoveTarget={onMoveTarget}
+                />
+              ))}
+          </div>
+        ) : null}
+      </div>
+      <p className="body-card-label">{title}</p>
+    </article>
+  );
+}
 
 function MuscleMap() {
-  const [view, setView] = useState("front"); // 'front' or 'back'
-  const [maleSelected, setMaleSelected] = useState(null);
-  const [femaleSelected, setFemaleSelected] = useState(null);
-  const [highlightedMuscle, setHighlightedMuscle] = useState(null);
+  const [view, setView] = useState('front');
+  const [regions, setRegions] = useState(() => loadCalibratedRegions());
+  const [hoveredMuscle, setHoveredMuscle] = useState(null);
+  const [pinnedMuscle, setPinnedMuscle] = useState(null);
+  const [lastSide, setLastSide] = useState('');
+  const [calibrateMode, setCalibrateMode] = useState(false);
+  const [selectedCalibrateTarget, setSelectedCalibrateTarget] = useState(null);
+  const [lockedByView, setLockedByView] = useState({ front: new Set(), back: new Set() });
+  const [calibrateMessage, setCalibrateMessage] = useState('');
 
-  // EDIT MODE toggles the draggable hotspots UI
-  const [editMode, setEditMode] = useState(false);
+  const calibrationTargets = useMemo(() => getCalibrationTargets(regions[view]), [regions, view]);
+  const lockedTargetKeys = lockedByView[view];
+  const displayMuscle = pinnedMuscle || hoveredMuscle;
 
-  // refs
-  const maleWrapperRef = useRef(null);
-  const femaleWrapperRef = useRef(null);
+  const activeTargetKey = displayMuscle
+    ? calibrationTargetKey(displayMuscle.id, displayMuscle.sideKey)
+    : null;
+
+  const switchView = (nextView) => {
+    setView(nextView);
+    setHoveredMuscle(null);
+    setPinnedMuscle(null);
+    setLastSide('');
+    if (calibrateMode) {
+      const targets = getCalibrationTargets(regions[nextView]);
+      setSelectedCalibrateTarget(targets[0]?.targetKey ?? null);
+    }
+  };
+
+  const startCalibrate = () => {
+    setCalibrateMode(true);
+    setPinnedMuscle(null);
+    setHoveredMuscle(null);
+    setSelectedCalibrateTarget(calibrationTargets[0]?.targetKey ?? null);
+    setCalibrateMessage(
+      'Drag each Left/Right marker on both bodies. Male and female use the same map — zones match exactly.'
+    );
+  };
+
+  const finishCalibrate = () => {
+    saveCalibratedRegions(regions);
+    setCalibrateMode(false);
+    setCalibrateMessage('Positions saved. Explore mode is active for both bodies.');
+  };
+
+  const resetCalibration = () => {
+    const defaults = resetCalibratedRegions();
+    setRegions(defaults);
+    setLockedByView({ front: new Set(), back: new Set() });
+    const targets = getCalibrationTargets(defaults[view]);
+    setSelectedCalibrateTarget(targets[0]?.targetKey ?? null);
+    setCalibrateMessage('Reset to default positions.');
+  };
+
+  const lockCurrentTarget = () => {
+    if (!selectedCalibrateTarget) return;
+    const nextLocked = new Set(lockedTargetKeys);
+    nextLocked.add(selectedCalibrateTarget);
+    setLockedByView((prev) => ({ ...prev, [view]: nextLocked }));
+
+    const nextTarget = calibrationTargets.find((t) => !nextLocked.has(t.targetKey));
+    setSelectedCalibrateTarget(nextTarget?.targetKey ?? selectedCalibrateTarget);
+
+    const current = calibrationTargets.find((t) => t.targetKey === selectedCalibrateTarget);
+    setCalibrateMessage(
+      nextTarget
+        ? `Locked ${current?.chipLabel}. Now place: ${nextTarget.chipLabel}`
+        : `All ${view} zones locked. Switch view or click Save positions.`
+    );
+  };
+
+  const handleMoveTarget = (targetKey, point) => {
+    const { muscleId, sideKey } = parseCalibrationTarget(targetKey);
+    setRegions((prev) => moveMuscleSideCentroid(prev, view, muscleId, sideKey, point));
+    setSelectedCalibrateTarget(targetKey);
+  };
+
+  const handleMuscleHover = (muscleId, muscleData, bodyTitle) => {
+    if (muscleId && muscleData) {
+      setHoveredMuscle(muscleData);
+      setLastSide(bodyTitle);
+      return;
+    }
+    if (!pinnedMuscle) setHoveredMuscle(null);
+  };
+
+  const handleMuscleSelect = (muscleId, muscleData, bodyTitle) => {
+    if (muscleId && muscleData) {
+      setPinnedMuscle(muscleData);
+      setHoveredMuscle(muscleData);
+      setLastSide(bodyTitle);
+      return;
+    }
+    setPinnedMuscle(null);
+    setHoveredMuscle(null);
+  };
 
   const maleImage = `/images/male-${view}.png`;
   const femaleImage = `/images/female-${view}.png`;
 
-  useEffect(() => {
-    setMaleSelected(null);
-    setFemaleSelected(null);
-    setHighlightedMuscle(null);
-  }, [view]);
-
-  // initial polygon shapes (percent coords 0..100)
-  const initialPolygons = useMemo(
-    () => ({
-      front: {
-        "Chest (Pectoralis)": [
-          [26.51, 14.25],
-          [50.51, 14.25],
-          [56.51, 28.25],
-          [50.51, 34.25],
-          [38.51, 30.25],
-          [26.51, 26.25],
-        ],
-        "Shoulder (Deltoid)": [
-          [24.32, 19.27],
-          [32.32, 15.27],
-          [40.32, 19.27],
-          [34.32, 29.27],
-        ],
-        Biceps: [
-          [24, 28],
-          [30, 26],
-          [34, 36],
-          [28, 44],
-          [22, 40],
-        ],
-        Forearm: [
-          [20, 44],
-          [28, 46],
-          [26, 56],
-          [18, 54],
-        ],
-        "Abs (Rectus Abdominis)": [
-          [41.8, 29.69],
-          [57.8, 29.69],
-          [59.8, 45.69],
-          [39.8, 45.69],
-        ],
-        Obliques: [
-          [62, 38],
-          [72, 44],
-          [68, 56],
-          [58, 48],
-        ],
-        Quadriceps: [
-          [44, 60],
-          [56, 60],
-          [62, 78],
-          [36, 78],
-        ],
-        "Hamstrings (front area)": [
-          [34, 78],
-          [46, 76],
-          [52, 88],
-          [36, 90],
-        ],
-        Calves: [
-          [50, 84],
-          [56, 84],
-          [58, 96],
-          [46, 96],
-        ],
-        Neck: [
-          [45.8, 13.4],
-          [53.8, 13.4],
-          [55.8, 21.4],
-          [43.8, 21.4],
-        ],
-      },
-      back: {
-        Trapezius: [
-          [40, 12],
-          [60, 12],
-          [66, 22],
-          [34, 22],
-        ],
-        "Upper Back (Rhomboids)": [
-          [40, 24],
-          [60, 24],
-          [64, 34],
-          [36, 34],
-        ],
-        "Lats (Latissimus Dorsi)": [
-          [23.2, 21.97],
-          [63.2, 21.97],
-          [67.2, 39.97],
-          [19.2, 39.97],
-        ],
-        "Rear Deltoid": [
-          [18, 18],
-          [26, 16],
-          [34, 22],
-          [26, 28],
-        ],
-        "Triceps (back)": [
-          [24, 34],
-          [30, 34],
-          [34, 44],
-          [28, 50],
-          [22, 46],
-        ],
-        "Lower Back (Erector Spinae)": [
-          [44, 44],
-          [56, 44],
-          [58, 58],
-          [42, 58],
-        ],
-        Glutes: [
-          [41.86, 40.94],
-          [61.86, 40.94],
-          [63.86, 50.94],
-          [39.86, 52.94],
-        ],
-        Hamstrings: [
-          [38, 76],
-          [54, 76],
-          [56, 88],
-          [36, 90],
-        ],
-        "Calves (back)": [
-          [46, 88],
-          [54, 88],
-          [56, 98],
-          [44, 98],
-        ],
-      },
-    }),
-    []
-  );
-
-  // Compute centroid percent for each polygon so markers are single points to drag.
-  const computeCentroid = (poly) => {
-    const n = poly.length;
-    if (n === 0) return { x: 50, y: 50 };
-    let sx = 0,
-      sy = 0;
-    poly.forEach((p) => {
-      sx += p[0];
-      sy += p[1];
-    });
-    return { x: sx / n, y: sy / n };
-  };
-
-  // Build initial centroids map from initialPolygons
-  const initialCentroids = useMemo(() => {
-    const out = { front: {}, back: {} };
-    Object.keys(initialPolygons.front).forEach((name) => {
-      out.front[name] = computeCentroid(initialPolygons.front[name]);
-    });
-    Object.keys(initialPolygons.back).forEach((name) => {
-      out.back[name] = computeCentroid(initialPolygons.back[name]);
-    });
-    return out;
-  }, [initialPolygons]);
-
-  // Stateful centroids so we can update by dragging
-  const [centroids, setCentroids] = useState(initialCentroids);
-
-  // Keep polygon shapes for detection (we'll still use the polygon array; we update centroid only)
-  const musclePolygons = useMemo(() => initialPolygons, [initialPolygons]);
-
-  // point-in-polygon (ray casting)
-  function pointInPoly([x, y], poly) {
-    let inside = false;
-    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      const xi = poly[i][0],
-        yi = poly[i][1];
-      const xj = poly[j][0],
-        yj = poly[j][1];
-      const intersect =
-        yi > y !== yj > y &&
-        x < ((xj - xi) * (y - yi)) / (yj - yi + 0.0000001) + xi;
-      if (intersect) inside = !inside;
-    }
-    return inside;
-  }
-
-  function findMuscleAtPercent(percentPoint, viewName) {
-    const polygons = musclePolygons[viewName];
-    if (!polygons) return null;
-    const names = Object.keys(polygons);
-    for (let i = 0; i < names.length; i++) {
-      const nm = names[i];
-      if (pointInPoly([percentPoint.x, percentPoint.y], polygons[nm]))
-        return nm;
-    }
-    return null;
-  }
-
-  // clicking image to select muscle (existing behavior)
-  function handleWrapperClick(e, side) {
-    if (e.button !== 0) return;
-    const wrapper =
-      side === "male" ? maleWrapperRef.current : femaleWrapperRef.current;
-    if (!wrapper) return;
-    const rect = wrapper.getBoundingClientRect();
-    const px = ((e.clientX - rect.left) / rect.width) * 100;
-    const py = ((e.clientY - rect.top) / rect.height) * 100;
-    const point = {
-      x: Math.max(0, Math.min(100, px)),
-      y: Math.max(0, Math.min(100, py)),
-    };
-
-    console.log(
-      `[MuscleMap] click side=${side} view=${view} px=${point.x.toFixed(
-        2
-      )} py=${point.y.toFixed(2)}`,
-      { rect }
-    );
-
-    const found = findMuscleAtPercent(point, view);
-
-    // highlight polygon in edit mode
-    if (editMode) setHighlightedMuscle(found);
-
-    console.log("[MuscleMap] found:", found);
-    if (side === "male") setMaleSelected(found);
-    else setFemaleSelected(found);
-  }
-
-  // ----- Drag support: mousedown -> move -> up. Works for mouse and touch.
-  const dragStateRef = useRef(null);
-  function startDrag(e, side, muscleName) {
-    e.preventDefault();
-    const wrapper =
-      side === "male" ? maleWrapperRef.current : femaleWrapperRef.current;
-    if (!wrapper) return;
-    const rect = wrapper.getBoundingClientRect();
-    // store drag context
-    dragStateRef.current = { side, muscleName, wrapper, rect };
-    // attach listeners on document
-    document.addEventListener("mousemove", onDragMove);
-    document.addEventListener("mouseup", endDrag);
-    document.addEventListener("touchmove", onDragMove, { passive: false });
-    document.addEventListener("touchend", endDrag);
-  }
-
-  function onDragMove(e) {
-    if (!dragStateRef.current) return;
-    e.preventDefault();
-    const { muscleName, wrapper } = dragStateRef.current;
-    const rect = wrapper.getBoundingClientRect();
-    const pointer = e.touches ? e.touches[0] : e;
-    const px = ((pointer.clientX - rect.left) / rect.width) * 100;
-    const py = ((pointer.clientY - rect.top) / rect.height) * 100;
-    const point = {
-      x: Math.max(0, Math.min(100, px)),
-      y: Math.max(0, Math.min(100, py)),
-    };
-    setCentroids((prev) => {
-      const copy = { front: { ...prev.front }, back: { ...prev.back } };
-      copy[view][muscleName] = point;
-      return copy;
-    });
-  }
-
-  function endDrag() {
-    // cleanup
-    document.removeEventListener("mousemove", onDragMove);
-    document.removeEventListener("mouseup", endDrag);
-    document.removeEventListener("touchmove", onDragMove);
-    document.removeEventListener("touchend", endDrag);
-    dragStateRef.current = null;
-  }
-
-  // export the centroids (and polygons if needed)
-  function exportHotspots() {
-    const exportObj = { polygons: musclePolygons, centroids };
-    const json = JSON.stringify(exportObj, null, 2);
-    console.log("Exported hotspots:", exportObj);
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard
-        .writeText(json)
-        .then(() => {
-          alert("Hotspots JSON copied to clipboard (also logged to console).");
-        })
-        .catch(() => {
-          alert("Could not copy to clipboard, but exported to console.");
-        });
-    } else {
-      alert("Clipboard not available; exported to console.");
-    }
-  }
-
-  // render a draggable marker for every muscle in current view
-  function renderMarkers(side) {
-    const cset = centroids[view] || {};
-    return Object.keys(cset).map((name) => {
-      const pt = cset[name];
-      const style = { left: `${pt.x}%`, top: `${pt.y}%` };
-      return (
-        <div
-          key={`${side}-${name}`}
-          className="hotspot-marker"
-          title={name}
-          style={style}
-          onMouseDown={(e) => startDrag(e, side, name)}
-          onTouchStart={(e) => startDrag(e, side, name)}
-          onDoubleClick={() => {
-            // nudge center back to computed centroid from polygon if needed
-            const poly = musclePolygons[view][name];
-            if (!poly) return;
-            const c = computeCentroid(poly);
-            setCentroids((prev) => {
-              const copy = { front: { ...prev.front }, back: { ...prev.back } };
-              copy[view][name] = c;
-              return copy;
-            });
-          }}
-        >
-          <div className="hotspot-marker-dot" />
-        </div>
-      );
-    });
-  }
-
   return (
     <section className="muscle-map-section">
-      <h2 className="muscle-map-title">🧍‍♂️ Muscle Map</h2>
-      <p className="muscle-map-subtitle">
-        Explore interactive body part breakdowns
-      </p>
+      <div className="muscle-map-hero">
+        <h1>Muscle Map</h1>
+        <p>
+          {calibrateMode
+            ? 'Calibrate each muscle side (Left / Right) separately. Both bodies share the same size and zone map.'
+            : 'New to the gym? Move your pointer over the muscles to learn key training areas.'}
+        </p>
+      </div>
 
       <div className="toggle-view-buttons">
-        <button
-          className={view === "front" ? "active" : ""}
-          onClick={() => setView("front")}
-        >
-          Front View
+        <button type="button" className={view === 'front' ? 'active' : ''} onClick={() => switchView('front')}>
+          Front view
         </button>
-        <button
-          className={view === "back" ? "active" : ""}
-          onClick={() => setView("back")}
-        >
-          Back View
+        <button type="button" className={view === 'back' ? 'active' : ''} onClick={() => switchView('back')}>
+          Back view
         </button>
-
-        {/* Dev controls */}
-        <button
-          onClick={() => setEditMode((prev) => !prev)}
-          style={{ marginLeft: 14 }}
-        >
-          {editMode ? "Exit Edit Hotspots" : "Edit Hotspots"}
-        </button>
-
-        {editMode && (
-          <button onClick={exportHotspots} style={{ marginLeft: 8 }}>
-            Export Hotspots
-          </button>
-        )}
+        {MUSCLE_MAP_CALIBRATION_ENABLED &&
+          (!calibrateMode ? (
+            <button type="button" className="calibrate-toggle-btn" onClick={startCalibrate}>
+              Calibrate positions
+            </button>
+          ) : (
+            <>
+              <button type="button" className="calibrate-save-btn" onClick={finishCalibrate}>
+                Save positions
+              </button>
+              <button type="button" className="calibrate-reset-btn" onClick={resetCalibration}>
+                Reset defaults
+              </button>
+            </>
+          ))}
       </div>
 
-      <div className="muscle-map-container">
-        <div className="selected-label left">
-          {maleSelected || "Click male image"}
-        </div>
-
-        {/* male */}
-        <div className="body-card m">
-          <div
-            ref={maleWrapperRef}
-            className="image-click-wrapper"
-            onClick={(e) => handleWrapperClick(e, "male")}
-            style={{ display: "inline-block", position: "relative" }}
-          >
-            <img
-              src={maleImage}
-              alt="Male Muscle Map"
-              className="body-image male"
-              style={{ pointerEvents: "none", display: "block" }}
-            />
-
-            <svg
-              className="highlight-overlay"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              aria-hidden
-            >
-              {editMode &&
-                highlightedMuscle &&
-                musclePolygons[view][highlightedMuscle] && (
-                  <polygon
-                    points={musclePolygons[view][highlightedMuscle]
-                      .map(([x, y]) => `${x},${y}`)
-                      .join(" ")}
-                    className="highlight-polygon"
-                  />
-                )}
-
-              {/* centroid circles (viewBox units) */}
-              {editMode &&
-                centroids[view] &&
-                Object.keys(centroids[view]).map((name) => (
-                  <circle
-                    key={`c-${name}`}
-                    cx={centroids[view][name].x}
-                    cy={centroids[view][name].y}
-                    r={1.4}
-                    fill={
-                      name === highlightedMuscle
-                        ? "orange"
-                        : "rgba(255,160,0,0.85)"
-                    }
-                    stroke="#fff"
-                    strokeWidth={0.3}
-                  />
-                ))}
-            </svg>
-
-            {/* DOM draggable markers (positioned with percent CSS) */}
-            {editMode && renderMarkers("male")}
+      {MUSCLE_MAP_CALIBRATION_ENABLED && calibrateMode ? (
+        <div className="calibrate-toolbar">
+          <div className="calibrate-muscle-list">
+            {calibrationTargets.map((target) => (
+              <button
+                key={target.targetKey}
+                type="button"
+                className={`calibrate-muscle-chip ${selectedCalibrateTarget === target.targetKey ? 'active' : ''} ${
+                  lockedTargetKeys.has(target.targetKey) ? 'done' : ''
+                }`}
+                onClick={() => setSelectedCalibrateTarget(target.targetKey)}
+              >
+                {target.chipLabel}
+                {lockedTargetKeys.has(target.targetKey) ? ' ✓' : ''}
+              </button>
+            ))}
           </div>
-          <p>Male</p>
-        </div>
-
-        {/* female */}
-        <div className="body-card f">
-          <div
-            ref={femaleWrapperRef}
-            className="image-click-wrapper"
-            onClick={(e) => handleWrapperClick(e, "female")}
-            style={{ display: "inline-block", position: "relative" }}
-          >
-            <img
-              src={femaleImage}
-              alt="Female Muscle Map"
-              className="body-image female"
-              style={{ pointerEvents: "none", display: "block" }}
-            />
-
-            <svg
-              className="highlight-overlay"
-              viewBox="0 0 100 100"
-              preserveAspectRatio="none"
-              aria-hidden
-            >
-              {editMode &&
-                highlightedMuscle &&
-                musclePolygons[view][highlightedMuscle] && (
-                  <polygon
-                    points={musclePolygons[view][highlightedMuscle]
-                      .map(([x, y]) => `${x},${y}`)
-                      .join(" ")}
-                    className="highlight-polygon"
-                  />
-                )}
-
-              {editMode &&
-                centroids[view] &&
-                Object.keys(centroids[view]).map((name) => (
-                  <circle
-                    key={`c2-${name}`}
-                    cx={centroids[view][name].x}
-                    cy={centroids[view][name].y}
-                    r={1.4}
-                    fill={
-                      name === highlightedMuscle
-                        ? "orange"
-                        : "rgba(255,160,0,0.85)"
-                    }
-                    stroke="#fff"
-                    strokeWidth={0.3}
-                  />
-                ))}
-            </svg>
-
-            {editMode && renderMarkers("female")}
+          <div className="calibrate-actions">
+            <button type="button" className="lock-muscle-btn" onClick={lockCurrentTarget}>
+              Lock zone
+            </button>
+            <p className="calibrate-hint">{calibrateMessage}</p>
           </div>
-          <p>Female</p>
+        </div>
+      ) : null}
+
+      <div className="muscle-map-stage">
+        <div className="body-figures-row">
+          <BodyFigure
+            title="Male"
+            imageSrc={maleImage}
+            view={view}
+            regions={regions}
+            activeTargetKey={activeTargetKey}
+            calibrateMode={calibrateMode}
+            selectedCalibrateTarget={selectedCalibrateTarget}
+            lockedTargetKeys={lockedTargetKeys}
+            onMuscleHover={(id, data) => handleMuscleHover(id, data, 'Male')}
+            onMuscleSelect={(id, data) => handleMuscleSelect(id, data, 'Male')}
+            onMoveTarget={handleMoveTarget}
+          />
+          <BodyFigure
+            title="Female"
+            imageSrc={femaleImage}
+            view={view}
+            regions={regions}
+            activeTargetKey={activeTargetKey}
+            calibrateMode={calibrateMode}
+            selectedCalibrateTarget={selectedCalibrateTarget}
+            lockedTargetKeys={lockedTargetKeys}
+            onMuscleHover={(id, data) => handleMuscleHover(id, data, 'Female')}
+            onMuscleSelect={(id, data) => handleMuscleSelect(id, data, 'Female')}
+            onMoveTarget={handleMoveTarget}
+          />
         </div>
 
-        <div className="selected-label right">
-          {femaleSelected || "Click female image"}
-        </div>
+        {!calibrateMode ? (
+          <aside className="muscle-info-panel" aria-live="polite">
+            <p className="muscle-info-kicker">
+              {displayMuscle
+                ? `${view === 'front' ? 'Front' : 'Back'} · ${lastSide}`
+                : 'Hover a muscle'}
+            </p>
+            <h2 className="muscle-info-title">{displayMuscle?.displayLabel ?? '—'}</h2>
+            <p className="muscle-scientific">
+              {displayMuscle?.scientific ?? 'Scientific name appears here'}
+            </p>
+            <p className="muscle-tip">
+              {displayMuscle?.tip ??
+                'Move your pointer over the body. This panel stays fixed so the map does not jump.'}
+            </p>
+            <div className="muscle-info-actions">
+              {pinnedMuscle ? (
+                <button type="button" className="clear-pin-btn" onClick={() => setPinnedMuscle(null)}>
+                  Clear selection
+                </button>
+              ) : (
+                <span className="muscle-hint">Click a muscle to pin this info.</span>
+              )}
+            </div>
+          </aside>
+        ) : null}
       </div>
+
+      {!calibrateMode ? (
+        <ul className="muscle-legend">
+          {Object.values(regions[view]).map((muscle) => (
+            <li key={muscle.label}>{muscle.label}</li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }

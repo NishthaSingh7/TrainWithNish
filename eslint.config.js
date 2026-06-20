@@ -29,12 +29,4 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
-  {
-    files: ['src/pages/MuscleMap.jsx'],
-    rules: {
-      // Legacy component patterns; tighten when Muscle Map is refactored.
-      'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/refs': 'off',
-    },
-  },
 ])
