@@ -1,0 +1,253 @@
+.cravings-wrapper {
+  margin-top: 96px;
+  min-height: calc(100vh - 96px);
+  padding: 36px 80px 72px;
+  background: linear-gradient(180deg, #1e1e1e 0%, #252525 38%, #f5f5f5 38%, #f5f5f5 100%);
+}
+
+.cravings-hero {
+  max-width: 780px;
+  margin: 0 auto 36px;
+  text-align: center;
+}
+
+.cravings-hero h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: #f5f5f5;
+  margin-bottom: 8px;
+}
+
+.cravings-hero p {
+  color: #d8d8d8;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+
+.cravings-pick,
+.cravings-timer-panel,
+.cravings-done-panel {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 10px 24px rgba(30, 30, 30, 0.12);
+  border: 1px solid rgba(191, 146, 100, 0.18);
+}
+
+.cravings-pick h2,
+.cravings-done-panel h2 {
+  margin: 0 0 20px;
+  color: #1e1e1e;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.cravings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.craving-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 12px;
+  border: 2px solid #e8e8e8;
+  border-radius: 14px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.craving-chip:hover {
+  transform: translateY(-2px);
+  border-color: #d4ab7d;
+}
+
+.craving-chip.selected {
+  border-color: #bf9264;
+  background: #fff4e8;
+}
+
+.craving-chip-emoji {
+  font-size: 1.8rem;
+}
+
+.craving-chip-label {
+  font-weight: 700;
+  color: #1e1e1e;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.craving-chip-time {
+  font-size: 0.8rem;
+  color: #6f826a;
+  font-weight: 600;
+}
+
+.cravings-preview {
+  text-align: center;
+}
+
+.cravings-preview p {
+  color: #555;
+  margin: 0 0 18px;
+  line-height: 1.45;
+}
+
+.cravings-hint {
+  text-align: center;
+  color: #888;
+  margin: 0;
+}
+
+.cravings-start-btn {
+  border: none;
+  background: linear-gradient(120deg, #bf9264, #d4ab7d);
+  color: #fff;
+  font-weight: 700;
+  padding: 14px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.cravings-secondary-btn {
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #1e1e1e;
+  font-weight: 600;
+  padding: 14px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.cravings-timer-panel {
+  text-align: center;
+}
+
+.cravings-active-label {
+  margin: 0 0 24px;
+  font-weight: 700;
+  color: #1e1e1e;
+  font-size: 1.15rem;
+}
+
+.cravings-timer-ring {
+  --progress: 0%;
+  width: 220px;
+  height: 220px;
+  margin: 0 auto 28px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(#bf9264 var(--progress), #f0f0f0 0);
+  position: relative;
+}
+
+.cravings-timer-ring::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.cravings-timer-value,
+.cravings-timer-sub {
+  position: relative;
+  z-index: 1;
+}
+
+.cravings-timer-value {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #1e1e1e;
+  line-height: 1;
+}
+
+.cravings-timer-sub {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: #6f826a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cravings-tip {
+  max-width: 520px;
+  margin: 0 auto 24px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.cravings-tip.motivation {
+  background: #f0f4ef;
+  border-left: 4px solid #6f826a;
+}
+
+.cravings-tip.distraction {
+  background: #fff4e8;
+  border-left: 4px solid #bf9264;
+}
+
+.cravings-tip-kicker {
+  margin: 0 0 8px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: 700;
+  color: #666;
+}
+
+.cravings-tip-text {
+  margin: 0;
+  color: #333;
+  line-height: 1.45;
+  font-size: 1rem;
+}
+
+.cravings-cancel-btn {
+  border: none;
+  background: transparent;
+  color: #888;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.cravings-done-panel p {
+  color: #444;
+  line-height: 1.5;
+  text-align: center;
+  margin: 0 0 24px;
+}
+
+.cravings-done-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .cravings-wrapper {
+    padding: 24px 16px 52px;
+    background: linear-gradient(180deg, #1e1e1e 0%, #252525 28%, #f5f5f5 28%, #f5f5f5 100%);
+  }
+
+  .cravings-pick,
+  .cravings-timer-panel,
+  .cravings-done-panel {
+    padding: 20px 16px;
+  }
+}
