@@ -1,17 +1,59 @@
 .feature-section {
-  padding: 60px 100px;
+  padding: 100px 100px 120px;
   background-color: #f5f5f5;
   color: #1e1e1e;
   text-align: center;
 }
 
+.feature-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 56px;
+}
+
+.feature-eyebrow {
+  display: block;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #888;
+  margin-bottom: 12px;
+}
+
 .feature-heading {
   font-size: 2.5rem;
-  margin-bottom: 40px;
+  margin: 0 0 12px;
+  display: block;
 }
-.feature-card h3,p{
+
+.feature-heading::after {
+  content: '';
+  display: block;
+  width: 0;
+  height: 3px;
+  background: #1e1e1e;
+  margin: 10px auto 0;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+.feature-header.is-revealed .feature-heading::after {
+  width: 48px;
+}
+
+.feature-subheading {
+  font-size: 1.1rem;
+  color: #666;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.feature-card h3,
+.feature-card p {
   color: #1e1e1e;
 }
+
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -19,32 +61,154 @@
 }
 
 .feature-card {
+  position: relative;
   background-color: white;
-  padding: 24px;
+  padding: 28px 24px 24px;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.3, 0.64, 1),
+    box-shadow 0.35s ease;
+  overflow: hidden;
 }
 
-.feature-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+.feature-card.is-revealed:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  padding: 1px;
+  background: linear-gradient(135deg, transparent 40%, rgba(30, 30, 30, 0.15) 50%, transparent 60%);
+  background-size: 300% 300%;
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+
+.feature-card.is-revealed:hover::before {
+  opacity: 1;
+  animation: feature-border-shimmer 1.5s linear infinite;
+}
+
+.feature-card--live.is-revealed:hover .feature-icon {
+  animation: feature-icon-bounce 0.5s ease;
+}
+
+.feature-live-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #1e1e1e;
+  color: white;
 }
 
 .feature-link {
   display: block;
   text-decoration: none;
   color: inherit;
+  text-align: left;
+  position: relative;
 }
 
-.feature-link:hover h3,
-.feature-link:hover p {
-  color: #1e1e1e;
+.feature-link--static {
+  cursor: default;
 }
 
 .feature-icon {
   font-size: 2.5em;
   margin-bottom: 12px;
   display: block;
+  transition: transform 0.35s ease;
 }
 
+.feature-card.is-revealed:hover .feature-icon {
+  transform: scale(1.12);
+}
+
+.feature-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+}
+
+.feature-card p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #555;
+}
+
+.feature-arrow {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 1.2rem;
+  color: #1e1e1e;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.feature-card.is-revealed:hover .feature-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.feature-soon {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #aaa;
+  border: 1px solid #ddd;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+@keyframes feature-border-shimmer {
+  to { background-position: 200% 200%; }
+}
+
+@keyframes feature-icon-bounce {
+  0%, 100% { transform: scale(1.12); }
+  40% { transform: scale(1.25); }
+  70% { transform: scale(1.08); }
+}
+
+@media (max-width: 768px) {
+  .feature-section {
+    padding: 72px 24px 88px;
+  }
+
+  .feature-heading {
+    font-size: 2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-card.is-revealed:hover,
+  .feature-card.is-revealed:hover .feature-icon,
+  .feature-card--live.is-revealed:hover .feature-icon {
+    transform: none;
+    animation: none;
+  }
+}
