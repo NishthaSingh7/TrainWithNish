@@ -103,13 +103,19 @@
   color: white;
 }
 
+@media (max-width: 900px) {
+  .spotlight-section {
+    padding: 80px var(--page-gutter-lg) 100px;
+  }
+}
+
 @media (max-width: 768px) {
   .spotlight-section {
-    padding: 72px 24px 88px;
+    padding: 72px var(--page-gutter) 88px;
   }
 
   .spotlight-heading {
-    font-size: 2rem;
+    font-size: clamp(1.75rem, 6vw, 2rem);
   }
 
   .spotlight-card,
