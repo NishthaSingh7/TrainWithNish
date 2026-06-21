@@ -1,6 +1,7 @@
 .trackprs-wrapper {
-  margin-top: 96px;
-  min-height: calc(100vh - 96px);
+  margin-top: calc(var(--nav-height) + 16px);
+  min-height: calc(100vh - var(--nav-height) - 16px);
+  min-height: calc(100dvh - var(--nav-height) - 16px);
   padding: 36px 80px 72px;
   background: linear-gradient(180deg, #1e1e1e 0%, #252525 38%, #f5f5f5 38%, #f5f5f5 100%);
 }
@@ -204,5 +205,20 @@
 
   .trackprs-row {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .trackprs-wrapper {
+    padding: 20px var(--page-gutter) 48px;
+  }
+
+  .trackprs-history-list li {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .trackprs-delete {
+    align-self: flex-start;
   }
 }

@@ -194,13 +194,38 @@
   70% { transform: scale(1.08); }
 }
 
+@media (max-width: 900px) {
+  .feature-section {
+    padding: 80px var(--page-gutter-lg) 100px;
+  }
+}
+
 @media (max-width: 768px) {
   .feature-section {
-    padding: 72px 24px 88px;
+    padding: 72px var(--page-gutter) 88px;
   }
 
   .feature-heading {
-    font-size: 2rem;
+    font-size: clamp(1.75rem, 6vw, 2rem);
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .feature-card {
+    padding: 22px 18px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .feature-section {
+    padding: 56px var(--page-gutter) 72px;
+  }
+
+  .feature-header {
+    margin-bottom: 40px;
   }
 }
 
