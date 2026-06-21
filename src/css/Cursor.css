@@ -1,0 +1,31 @@
+:root {
+  --cursor-dumbbell: url('/cursor-dumbbell.svg') 16 16, auto;
+}
+
+html,
+body,
+#root,
+a,
+button,
+input,
+textarea,
+select,
+[role='button'],
+label[for] {
+  cursor: var(--cursor-dumbbell);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html,
+  body,
+  #root,
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  [role='button'],
+  label[for] {
+    cursor: auto;
+  }
+}
