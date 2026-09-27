@@ -2,26 +2,31 @@
   margin-top: calc(var(--nav-height) + 16px);
   min-height: calc(100vh - var(--nav-height) - 16px);
   min-height: calc(100dvh - var(--nav-height) - 16px);
-  padding: 36px 80px 72px;
-  background: linear-gradient(180deg, #1e1e1e 0%, #252525 38%, #f5f5f5 38%, #f5f5f5 100%);
+  padding: 0 80px 72px;
+  background: #f5f5f5;
 }
 
 .cravings-hero {
-  max-width: 780px;
-  margin: 0 auto 36px;
+  max-width: none;
+  margin: 0 -80px 32px;
+  padding: 36px 80px 32px;
+  background: linear-gradient(180deg, #1e1e1e 0%, #252525 100%);
   text-align: center;
 }
 
 .cravings-hero h1 {
   font-size: clamp(2rem, 4vw, 3rem);
   color: #f5f5f5;
-  margin-bottom: 8px;
+  margin: 0 auto 8px;
+  max-width: 780px;
 }
 
 .cravings-hero p {
   color: #d8d8d8;
   font-size: 1.05rem;
   line-height: 1.5;
+  margin: 0 auto;
+  max-width: 780px;
 }
 
 .cravings-pick,
@@ -242,15 +247,31 @@
 
 @media (max-width: 980px) {
   .cravings-wrapper {
-    padding: 24px var(--page-gutter-lg) 52px;
-    background: linear-gradient(180deg, #1e1e1e 0%, #252525 28%, #f5f5f5 28%, #f5f5f5 100%);
+    padding: 0 var(--page-gutter-lg) 52px;
+  }
+
+  .cravings-hero {
+    margin-left: calc(-1 * var(--page-gutter-lg));
+    margin-right: calc(-1 * var(--page-gutter-lg));
+    padding: 28px var(--page-gutter-lg) 28px;
   }
 }
 
 @media (max-width: 768px) {
   .cravings-wrapper {
-    padding: 20px var(--page-gutter) 48px;
-    background: linear-gradient(180deg, #1e1e1e 0%, #252525 24%, #f5f5f5 24%, #f5f5f5 100%);
+    padding: 0 var(--page-gutter) 48px;
+  }
+
+  .cravings-hero {
+    margin-left: calc(-1 * var(--page-gutter));
+    margin-right: calc(-1 * var(--page-gutter));
+    margin-bottom: 24px;
+    padding: 24px var(--page-gutter) 24px;
+  }
+
+  .cravings-hero p {
+    font-size: 0.98rem;
+    line-height: 1.55;
   }
 
   .cravings-pick,
@@ -259,6 +280,7 @@
     padding: 20px 16px;
     width: 100%;
     box-sizing: border-box;
+    margin-top: 0;
   }
 
   .cravings-grid {
